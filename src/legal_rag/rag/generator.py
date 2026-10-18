@@ -45,19 +45,26 @@ class LegalGenerator:
         if self.provider == "mock":
             return self._generate_mock(prompt)
         elif self.provider in ("groq", "openai_compatible", "vllm"):
-            if not self.api_key:
+            if not self.api_key or self.api_key in ("your_groq_api_key_here", "dummy_key"):
                 logger.warning(
-                    f"No API key provided for {self.provider}. Falling back to mock generator for offline compatibility."
+                    f"No valid API key provided for {self.provider}. Falling back to mock generator for offline compatibility."
                 )
-                # return self._generate_mock(prompt)
-            return await self._generate_openai_compatible(prompt, system_prompt)
+                return self._generate_mock(prompt)
+            try:
+                return await self._generate_openai_compatible(prompt, system_prompt)
+            except Exception as e:  # noqa: BLE001
+                logger.warning(
+                    f"Error calling {self.provider} API: {e}. Falling back to mock generator."
+                )
+                return self._generate_mock(prompt)
         else:
             return self._generate_mock(prompt)
 
     async def generate_stream(self, prompt: str, system_prompt: str) -> AsyncGenerator[str, None]:
         """Yield streamed tokens asynchronously."""
+        is_placeholder = not self.api_key or self.api_key in ("your_groq_api_key_here", "dummy_key")
         if self.provider == "mock" or (
-            self.provider in ("groq", "openai_compatible", "vllm") and not self.api_key
+            self.provider in ("groq", "openai_compatible", "vllm") and is_placeholder
         ):
             full_response = self._generate_mock(prompt)
             words = full_response.split(" ")

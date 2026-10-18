@@ -1,0 +1,110 @@
+name: CI Quality Gate & Docker Build
+
+on:
+  push:
+    branches: [main, module-*]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Code Formatting & Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Lint Tools
+        run: |
+          pip install ruff black
+
+      - name: Check Ruff Linting
+        run: ruff check .
+
+      - name: Check Black Formatting
+        run: black --check .
+
+  test:
+    name: Unit & Integration Tests (Coverage >= 70%)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install Dependencies
+        run: |
+          uv sync --dev
+
+      - name: Run Pytest with Coverage Gate
+        run: |
+          uv run pytest --cov=src/legal_rag --cov-report=xml --cov-fail-under=70
+
+      - name: Upload Test Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  quality-gate:
+    name: RAGAS Statutory Faithfulness Gate (>= 0.75)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install Dependencies
+        run: |
+          uv sync
+
+      - name: Execute 20-Question Statutory Quality Gate
+        env:
+          RAGAS_GATE_THRESHOLD: "0.75"
+          LLM_PROVIDER: "mock"
+        run: |
+          uv run python -m tests.test_ragas_gate
+
+  build:
+    name: Docker Container Build
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: false
+          tags: legal-rag:ci

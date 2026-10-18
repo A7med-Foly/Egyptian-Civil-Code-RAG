@@ -194,6 +194,10 @@ class LegalVectorStore:
         combined.sort(key=lambda x: x[1], reverse=True)
         return combined[:top_k]
 
+    def search(self, query: str, top_k: int = 3) -> list[tuple[LegalChunk, float]]:
+        """Dense semantic search (pure vector similarity, alpha=1.0)."""
+        return self.hybrid_search(query, top_k=top_k, alpha=1.0)
+
 
 def main():
     """CLI entry point to index the processed legal corpus into ChromaDB."""

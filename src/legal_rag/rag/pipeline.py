@@ -99,10 +99,35 @@ class LegalRAGPipeline:
             "question": question,
             "answer": answer,
             "sources": sources,
+            "retrieved_documents": [chunk for chunk, _ in relevant_chunks],
             "retrieval_latency_ms": round(retrieval_latency * 1000, 2),
             "generation_latency_ms": round(generation_latency * 1000, 2),
             "total_latency_ms": round(total_latency * 1000, 2),
         }
+
+    def ask(
+        self,
+        question: str,
+        top_k: int | None = None,
+        similarity_threshold: float | None = None,
+    ) -> dict[str, Any]:
+        """Synchronous convenience method to answer a question."""
+        import asyncio
+
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    return pool.submit(
+                        asyncio.run, self.answer_question(question, top_k, similarity_threshold)
+                    ).result()
+            return loop.run_until_complete(
+                self.answer_question(question, top_k, similarity_threshold)
+            )
+        except RuntimeError:
+            return asyncio.run(self.answer_question(question, top_k, similarity_threshold))
 
     async def answer_stream(
         self,

@@ -1,0 +1,67 @@
+name: Continuous Retraining & Automated Model Promotion
+
+on:
+  schedule:
+    # Run every Sunday at midnight UTC
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+    inputs:
+      force_reindex:
+        description: "Force complete DVC re-indexing from source PDF"
+        required: false
+        default: false
+        type: boolean
+      min_faithfulness:
+        description: "Minimum faithfulness threshold for promotion"
+        required: false
+        default: "0.75"
+        type: string
+
+jobs:
+  continuous-training:
+    name: DVC Pipeline Reproduction & Model Evaluation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install Dependencies
+        run: |
+          uv sync --dev
+
+      - name: Reproduce DVC Pipeline
+        run: |
+          uv run dvc repro
+
+      - name: Execute Retraining and Model Promotion
+        env:
+          RAGAS_GATE_THRESHOLD: ${{ inputs.min_faithfulness || '0.75' }}
+          MLFLOW_TRACKING_URI: "sqlite:///data/mlflow.db"
+        run: |
+          uv run python pipelines/run_experiments.py
+
+      - name: Check for Updated DVC Locks
+        id: git-check
+        run: |
+          git diff --exit-code dvc.lock || echo "dvc_changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit & Push Pipeline Lineage (if updated)
+        if: steps.git-check.outputs.dvc_changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dvc.lock data/processed/.gitignore
+          git commit -m "chore(dvc): automated re-indexing pipeline update [skip ci]"
+          git push

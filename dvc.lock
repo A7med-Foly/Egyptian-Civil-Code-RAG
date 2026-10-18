@@ -1,0 +1,63 @@
+schema: '2.0'
+stages:
+  extract:
+    cmd: uv run python -m legal_rag.ingestion.extractor
+    deps:
+    - path: data/raw/Egyptian-Civil-Code.pdf
+      hash: md5
+      md5: 5086ef5f16f15d856278db943e58e948
+      size: 2599703
+    - path: src/legal_rag/ingestion/extractor.py
+      hash: md5
+      md5: ab5ee8ce0be53f9609d7c28792d97f9a
+      size: 13681
+    - path: src/legal_rag/ingestion/normalizer.py
+      hash: md5
+      md5: 337a172edac26b88faf7f91ca36dae8c
+      size: 3041
+    outs:
+    - path: data/processed/egyptian_civil_code.json
+      hash: md5
+      md5: 1e8f00d4636567371b31cabaf59a00a2
+      size: 1382854
+  validate:
+    cmd: uv run python -m legal_rag.ingestion.validator
+    deps:
+    - path: data/processed/egyptian_civil_code.json
+      hash: md5
+      md5: 1e8f00d4636567371b31cabaf59a00a2
+      size: 1382854
+    - path: src/legal_rag/ingestion/validator.py
+      hash: md5
+      md5: c1eddbecd03c848d09d49fa456c98394
+      size: 5020
+    outs:
+    - path: data/processed/validation_report.json
+      hash: md5
+      md5: d6d08998795433c5495cfb96f979cf81
+      size: 190
+  index:
+    cmd: uv run python -m legal_rag.indexing.vector_store
+    deps:
+    - path: data/processed/egyptian_civil_code.json
+      hash: md5
+      md5: 1e8f00d4636567371b31cabaf59a00a2
+      size: 1382854
+    - path: src/legal_rag/indexing/chunker.py
+      hash: md5
+      md5: 3895122ae810facb161dacbf86918001
+      size: 4597
+    - path: src/legal_rag/indexing/embedder.py
+      hash: md5
+      md5: 0997ab244438d70cb3d31eeb8d48283b
+      size: 1453
+    - path: src/legal_rag/indexing/vector_store.py
+      hash: md5
+      md5: 66d1b0238b06e80593edcec287eb2bbe
+      size: 8247
+    outs:
+    - path: data/index/chroma_db
+      hash: md5
+      md5: f13667fe9a5ec888eb4b2735e8a92776.dir
+      size: 9792218
+      nfiles: 6

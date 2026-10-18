@@ -117,3 +117,21 @@ def validate_file(file_path: str | Path) -> dict[str, Any]:
         data = json.load(f)
     validator = CorpusValidator()
     return validator.validate(data)
+
+
+def main():
+    """CLI entry point to validate corpus and write validation report."""
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+    corpus_path = Path("data/processed/egyptian_civil_code.json")
+    report_path = Path("data/processed/validation_report.json")
+    if not corpus_path.exists():
+        raise FileNotFoundError(f"Corpus file {corpus_path} not found.")
+
+    summary = validate_file(corpus_path)
+    with open(report_path, "w", encoding="utf-8") as f:
+        json.dump(summary, f, ensure_ascii=False, indent=2)
+    logger.info(f"Validation report saved to {report_path}")
+
+
+if __name__ == "__main__":
+    main()

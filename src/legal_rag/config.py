@@ -44,9 +44,15 @@ class Settings(BaseSettings):
         """Retrieve either GROQ_API_KEY or generic LLM_API_KEY."""
         return self.GROQ_API_KEY or self.LLM_API_KEY
 
-    # MLflow configuration
-    MLFLOW_TRACKING_URI: str = "http://localhost:5000"
+    # MLflow configuration (defaults to local SQLite with full Registry support, overridable by env)
+    MLFLOW_TRACKING_URI: str = "sqlite:///data/mlflow.db"
     MLFLOW_EXPERIMENT_NAME: str = "arabic-legal-rag"
+    MLFLOW_S3_ENDPOINT_URL: str = "http://localhost:9000"
+
+    # S3 / MinIO configuration
+    AWS_ACCESS_KEY_ID: str = "minioadmin"
+    AWS_SECRET_ACCESS_KEY: str = "minioadmin"
+    AWS_ENDPOINT_URL: str = "http://localhost:9000"
 
     # Langfuse configuration
     LANGFUSE_PUBLIC_KEY: str | None = None

@@ -41,6 +41,13 @@ htmlcov/
 *.pem
 *.key
 
+# MLflow & Local Stores
+mlruns/
+*.db
+*.sqlite
+data/mlflow.db
+data/mlflow_artifacts/
+
 # Data and Artifacts (DVC handles data)
 data/raw/*.pdf
 data/index/
