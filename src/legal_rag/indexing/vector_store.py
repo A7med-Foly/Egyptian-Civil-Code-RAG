@@ -42,7 +42,25 @@ class LegalVectorStore:
 
         self.bm25: BM25Okapi | None = None
         self.bm25_chunks: list[LegalChunk] = []
+
+        # Auto-populate index if collection is empty but processed dataset exists
+        if self.collection.count() == 0 and settings.PROCESSED_DATA_PATH.exists():
+            self._auto_seed_from_corpus()
+
         self._init_bm25_from_chroma()
+
+    def _auto_seed_from_corpus(self) -> None:
+        """Auto-seed ChromaDB if collection is empty but processed corpus JSON exists."""
+        try:
+            logger.info("ChromaDB collection is empty. Auto-seeding from processed legal corpus...")
+            with open(settings.PROCESSED_DATA_PATH, "r", encoding="utf-8") as f:
+                articles = json.load(f)
+            chunker = ArticleChunker()
+            chunks = chunker.chunk_corpus(articles)
+            self.index_chunks(chunks)
+            logger.info(f"Auto-seeding complete: {self.documents_indexed} documents indexed.")
+        except (OSError, json.JSONDecodeError, KeyError, ValueError) as e:
+            logger.warning(f"Auto-seeding from corpus failed or skipped: {e}")
 
     def _init_bm25_from_chroma(self) -> None:
         """Populate in-memory BM25 index from existing Chroma collection items."""
@@ -193,6 +211,10 @@ class LegalVectorStore:
 
         combined.sort(key=lambda x: x[1], reverse=True)
         return combined[:top_k]
+
+    def search(self, query: str, top_k: int = 3) -> list[tuple[LegalChunk, float]]:
+        """Dense semantic search (pure vector similarity, alpha=1.0)."""
+        return self.hybrid_search(query, top_k=top_k, alpha=1.0)
 
 
 def main():

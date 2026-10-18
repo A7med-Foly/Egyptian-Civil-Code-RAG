@@ -1,0 +1,10 @@
+{
+  "total_articles": 1149,
+  "expected_articles": 1149,
+  "active_articles": 1093,
+  "repealed_articles": 56,
+  "empty_ar_count": 0,
+  "missing_count": 0,
+  "issues": [],
+  "passed": true
+}

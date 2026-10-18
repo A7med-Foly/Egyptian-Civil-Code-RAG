@@ -1,0 +1,249 @@
+{
+  "config": {
+    "name": "Run-2-Fine-Chunking-250",
+    "chunk_strategy": "fixed_window",
+    "chunk_size": 250,
+    "chunk_overlap": 50,
+    "embedding_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "retrieval_mode": "dense",
+    "top_k": 3
+  },
+  "metrics": {
+    "mean_latency_ms": 45.29,
+    "faithfulness_score": 0.7925,
+    "recall_at_3": 0.5,
+    "precision_at_3": 0.1
+  },
+  "detailed_results": [
+    {
+      "id": "Q01",
+      "question": "ما هي شروط صحة التراضي في العقد وعيوب الإرادة؟",
+      "ground_truth": [
+        120,
+        125,
+        127
+      ],
+      "latency_ms": 36.28,
+      "faithfulness": 0.825,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q02",
+      "question": "ما هو أثر الإكراه على صحة العقد؟",
+      "ground_truth": [
+        127
+      ],
+      "latency_ms": 32.65,
+      "faithfulness": 0.825,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q03",
+      "question": "ما هو حكم الغبن والتدليس في القانون المدني المصري؟",
+      "ground_truth": [
+        125,
+        129
+      ],
+      "latency_ms": 36.93,
+      "faithfulness": 0.825,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q04",
+      "question": "متى يعتبر العقد باطلاً بطلاناً مطلقاً؟",
+      "ground_truth": [
+        139,
+        141
+      ],
+      "latency_ms": 39.58,
+      "faithfulness": 0.825,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q05",
+      "question": "ما هو مبدأ العقد شريعة المتعاقدين والقوة الملزمة للعقد؟",
+      "ground_truth": [
+        147
+      ],
+      "latency_ms": 51.56,
+      "faithfulness": 0.825,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q06",
+      "question": "ما هو شرط حسن النية في تنفيذ الالتزامات العقدية؟",
+      "ground_truth": [
+        148
+      ],
+      "latency_ms": 45.19,
+      "faithfulness": 1.0,
+      "recall": 1.0,
+      "precision": 0.333
+    },
+    {
+      "id": "Q07",
+      "question": "ما هي أحكام الشرط الفاسخ الصريح والفسخ القضائي في العقود الملزمة للجانبين؟",
+      "ground_truth": [
+        157,
+        158
+      ],
+      "latency_ms": 86.51,
+      "faithfulness": 0.825,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q08",
+      "question": "ما هي أركان المسؤولية التقصيرية عن العمل غير المشروع (الفعل الضار)؟",
+      "ground_truth": [
+        163
+      ],
+      "latency_ms": 60.92,
+      "faithfulness": 0.825,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q09",
+      "question": "ما هي مسؤولية المتبوع عن أعمال تابعه الضارة؟",
+      "ground_truth": [
+        174
+      ],
+      "latency_ms": 53.53,
+      "faithfulness": 1.0,
+      "recall": 1.0,
+      "precision": 0.333
+    },
+    {
+      "id": "Q10",
+      "question": "ما هي قواعد الإثراء بلا سبب ودفع غير المستحق؟",
+      "ground_truth": [
+        179,
+        181
+      ],
+      "latency_ms": 44.13,
+      "faithfulness": 1.0,
+      "recall": 0.5,
+      "precision": 0.333
+    },
+    {
+      "id": "Q11",
+      "question": "ما هو أجل التقادم المسقط للحقوق والالتزامات كقاعدة عامة؟",
+      "ground_truth": [
+        374
+      ],
+      "latency_ms": 43.8,
+      "faithfulness": 0.825,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q12",
+      "question": "هل المادة 54 من القانون المدني سارية أم ملغاة؟",
+      "ground_truth": [
+        54
+      ],
+      "latency_ms": 38.81,
+      "faithfulness": 0.575,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q13",
+      "question": "ما هو الوضع القانوني للمادة 60 المتعلقة بالأحوال المدنية؟",
+      "ground_truth": [
+        60
+      ],
+      "latency_ms": 51.59,
+      "faithfulness": 0.575,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q14",
+      "question": "ما هي حقوق المالك وسلطته في الاستعمال والاستغلال والتصرف؟",
+      "ground_truth": [
+        802
+      ],
+      "latency_ms": 43.65,
+      "faithfulness": 0.825,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q15",
+      "question": "هل يجوز حرمان المالك من ملكه إلا للمنفعة العامة ومقابل تعويض عادل؟",
+      "ground_truth": [
+        805
+      ],
+      "latency_ms": 40.34,
+      "faithfulness": 1.0,
+      "recall": 1.0,
+      "precision": 0.333
+    },
+    {
+      "id": "Q16",
+      "question": "ما هو التزام المؤجر بصيانة العين المؤجرة وإجراء الترميمات الضرورية؟",
+      "ground_truth": [
+        564,
+        567
+      ],
+      "latency_ms": 42.47,
+      "faithfulness": 1.0,
+      "recall": 0.5,
+      "precision": 0.333
+    },
+    {
+      "id": "Q17",
+      "question": "ما هي التزامات المستأجر بشأن دفع الأجرة والمحافظة على العين؟",
+      "ground_truth": [
+        586,
+        588
+      ],
+      "latency_ms": 44.47,
+      "faithfulness": 0.825,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q18",
+      "question": "ما هو تعريف عقد البيع والتزام البائع بنقل الملكية إلى المشتري؟",
+      "ground_truth": [
+        418,
+        428
+      ],
+      "latency_ms": 43.25,
+      "faithfulness": 1.0,
+      "recall": 0.5,
+      "precision": 0.333
+    },
+    {
+      "id": "Q19",
+      "question": "ما هو تعريف الرهن الرسمي (التأميني) في القانون المدني؟",
+      "ground_truth": [
+        1030
+      ],
+      "latency_ms": 34.85,
+      "faithfulness": 0.825,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "id": "Q20",
+      "question": "ما هو تعريف حق الانتفاع وكيف ينتهي حق المنتفع؟",
+      "ground_truth": [
+        985,
+        993
+      ],
+      "latency_ms": 35.35,
+      "faithfulness": 0.825,
+      "recall": 0.0,
+      "precision": 0.0
+    }
+  ]
+}

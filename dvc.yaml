@@ -1,0 +1,30 @@
+stages:
+  extract:
+    cmd: uv run python -m legal_rag.ingestion.extractor
+    deps:
+      - data/raw/Egyptian-Civil-Code.pdf
+      - src/legal_rag/ingestion/extractor.py
+      - src/legal_rag/ingestion/normalizer.py
+    outs:
+      - data/processed/egyptian_civil_code.json:
+          cache: false
+
+  validate:
+    cmd: uv run python -m legal_rag.ingestion.validator
+    deps:
+      - data/processed/egyptian_civil_code.json
+      - src/legal_rag/ingestion/validator.py
+    outs:
+      - data/processed/validation_report.json:
+          cache: false
+
+  index:
+    cmd: uv run python -m legal_rag.indexing.vector_store
+    deps:
+      - data/processed/egyptian_civil_code.json
+      - src/legal_rag/indexing/vector_store.py
+      - src/legal_rag/indexing/chunker.py
+      - src/legal_rag/indexing/embedder.py
+    outs:
+      - data/index/chroma_db:
+          cache: true
