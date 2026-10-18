@@ -9,7 +9,7 @@
     "top_k": 3
   },
   "metrics": {
-    "mean_latency_ms": 51.53,
+    "mean_latency_ms": 58.61,
     "faithfulness_score": 0.8525,
     "recall_at_3": 0.225,
     "precision_at_3": 0.1
@@ -23,7 +23,7 @@
         125,
         127
       ],
-      "latency_ms": 36.06,
+      "latency_ms": 48.56,
       "faithfulness": 0.825,
       "recall": 0.0,
       "precision": 0.0
@@ -34,7 +34,7 @@
       "ground_truth": [
         127
       ],
-      "latency_ms": 50.38,
+      "latency_ms": 46.46,
       "faithfulness": 0.825,
       "recall": 0.0,
       "precision": 0.0
@@ -46,7 +46,7 @@
         125,
         129
       ],
-      "latency_ms": 44.97,
+      "latency_ms": 53.79,
       "faithfulness": 0.825,
       "recall": 0.0,
       "precision": 0.0
@@ -58,7 +58,7 @@
         139,
         141
       ],
-      "latency_ms": 43.33,
+      "latency_ms": 65.35,
       "faithfulness": 0.825,
       "recall": 0.0,
       "precision": 0.0
@@ -69,7 +69,7 @@
       "ground_truth": [
         147
       ],
-      "latency_ms": 51.48,
+      "latency_ms": 46.48,
       "faithfulness": 0.825,
       "recall": 0.0,
       "precision": 0.0
@@ -80,7 +80,7 @@
       "ground_truth": [
         148
       ],
-      "latency_ms": 43.63,
+      "latency_ms": 36.13,
       "faithfulness": 1.0,
       "recall": 1.0,
       "precision": 0.333
@@ -92,7 +92,7 @@
         157,
         158
       ],
-      "latency_ms": 52.18,
+      "latency_ms": 40.6,
       "faithfulness": 0.825,
       "recall": 0.0,
       "precision": 0.0
@@ -103,7 +103,7 @@
       "ground_truth": [
         163
       ],
-      "latency_ms": 61.96,
+      "latency_ms": 37.78,
       "faithfulness": 0.825,
       "recall": 0.0,
       "precision": 0.0
@@ -114,7 +114,7 @@
       "ground_truth": [
         174
       ],
-      "latency_ms": 52.15,
+      "latency_ms": 42.82,
       "faithfulness": 1.0,
       "recall": 1.0,
       "precision": 0.333
@@ -126,7 +126,7 @@
         179,
         181
       ],
-      "latency_ms": 45.14,
+      "latency_ms": 34.63,
       "faithfulness": 1.0,
       "recall": 0.5,
       "precision": 0.333
@@ -137,7 +137,7 @@
       "ground_truth": [
         374
       ],
-      "latency_ms": 68.68,
+      "latency_ms": 95.15,
       "faithfulness": 0.825,
       "recall": 0.0,
       "precision": 0.0
@@ -148,7 +148,7 @@
       "ground_truth": [
         54
       ],
-      "latency_ms": 41.25,
+      "latency_ms": 39.28,
       "faithfulness": 0.575,
       "recall": 0.0,
       "precision": 0.0
@@ -159,7 +159,7 @@
       "ground_truth": [
         60
       ],
-      "latency_ms": 46.42,
+      "latency_ms": 63.15,
       "faithfulness": 0.575,
       "recall": 0.0,
       "precision": 0.0
@@ -170,7 +170,7 @@
       "ground_truth": [
         802
       ],
-      "latency_ms": 45.38,
+      "latency_ms": 48.34,
       "faithfulness": 0.825,
       "recall": 0.0,
       "precision": 0.0
@@ -181,7 +181,7 @@
       "ground_truth": [
         805
       ],
-      "latency_ms": 67.28,
+      "latency_ms": 39.56,
       "faithfulness": 1.0,
       "recall": 1.0,
       "precision": 0.333
@@ -193,7 +193,7 @@
         564,
         567
       ],
-      "latency_ms": 71.13,
+      "latency_ms": 103.89,
       "faithfulness": 1.0,
       "recall": 0.5,
       "precision": 0.333
@@ -205,7 +205,7 @@
         586,
         588
       ],
-      "latency_ms": 58.52,
+      "latency_ms": 108.47,
       "faithfulness": 0.825,
       "recall": 0.0,
       "precision": 0.0
@@ -217,7 +217,7 @@
         418,
         428
       ],
-      "latency_ms": 57.53,
+      "latency_ms": 99.58,
       "faithfulness": 1.0,
       "recall": 0.5,
       "precision": 0.333
@@ -228,7 +228,7 @@
       "ground_truth": [
         1030
       ],
-      "latency_ms": 46.84,
+      "latency_ms": 87.39,
       "faithfulness": 0.825,
       "recall": 0.0,
       "precision": 0.0
@@ -240,7 +240,7 @@
         985,
         993
       ],
-      "latency_ms": 46.36,
+      "latency_ms": 34.8,
       "faithfulness": 0.825,
       "recall": 0.0,
       "precision": 0.0

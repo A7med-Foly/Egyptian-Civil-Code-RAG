@@ -104,7 +104,9 @@ CONFIGURATIONS = [
 
 
 def evaluate_config(
-    cfg: dict[str, Any], pipeline: LegalRAGPipeline
+    cfg: dict[str, Any],
+    pipeline: LegalRAGPipeline,
+    answer_cache: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[dict[str, float], list[dict[str, Any]]]:
     """Evaluate pipeline on 20 benchmark questions for a specific configuration."""
     latencies: list[float] = []
@@ -114,6 +116,7 @@ def evaluate_config(
     detailed_results: list[dict[str, Any]] = []
 
     use_hybrid = cfg.get("retrieval_mode") == "hybrid"
+    cache = answer_cache if answer_cache is not None else {}
 
     for item in LEGAL_BENCHMARK_20:
         q = item["question"]
@@ -128,8 +131,16 @@ def evaluate_config(
         latency_ms = (time.perf_counter() - t0) * 1000.0
         latencies.append(latency_ms)
 
-        # Generate response using retrieved context
-        resp = pipeline.ask(q)
+        # Check cache or query LLM with pacing to respect Groq rate limits
+        cache_key = f"{q}_{cfg.get('retrieval_mode')}_{cfg.get('top_k')}"
+        if cache_key in cache:
+            resp = cache[cache_key]
+        else:
+            resp = pipeline.ask(q)
+            cache[cache_key] = resp
+            if settings.LLM_PROVIDER == "groq" and settings.get_api_key():
+                time.sleep(1.2)  # Pacing to respect Groq free-tier 8,000 TPM limit
+
         answer = resp["answer"]
         sources = resp["sources"]
         retrieved_texts = [
@@ -216,6 +227,7 @@ def run_experiment_sweep():
 
     pipeline = LegalRAGPipeline()
     run_summaries = []
+    answer_cache: dict[str, dict[str, Any]] = {}
 
     best_run_id = None
     best_faithfulness = -1.0
@@ -254,7 +266,7 @@ def run_experiment_sweep():
             )
 
             # 3. Evaluate Metrics
-            metrics, details = evaluate_config(cfg, pipeline)
+            metrics, details = evaluate_config(cfg, pipeline, answer_cache=answer_cache)
             mlflow.log_metrics(metrics)
 
             logger.info(
