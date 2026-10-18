@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "legal-rag"
+version = "0.1.0"
+description = "Arabic Legal Document Q&A RAG system for Egyptian Civil Code"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "chromadb>=1.5.9",
+    "fastapi>=0.146.0",
+    "httpx>=0.28.1",
+    "numpy>=2.2.6",
+    "onnx>=1.23.2",
+    "onnxruntime>=1.24.3",
+    "onnxscript>=0.7.2",
+    "pdfplumber>=0.11.10",
+    "pydantic>=2.14.1",
+    "pydantic-settings>=2.15.0",
+    "pypdf>=6.21.1",
+    "python-json-logger>=4.2.0",
+    "rank-bm25>=0.2.2",
+    "sentence-transformers>=6.1.0",
+    "torch>=2.14.1",
+    "uvicorn>=0.54.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.1.0",
+    "black>=23.10.0",
+    "pre-commit>=3.5.0",
+]
+
+[project.scripts]
+legal-rag-ingest = "legal_rag.ingestion.extractor:main"
+legal-rag-index = "legal_rag.indexing.vector_store:main"
+legal-rag-serve = "legal_rag.api.main:start"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-v --cov=src/legal_rag --cov-report=term-missing --cov-fail-under=70"
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[dependency-groups]
+dev = [
+    "black>=26.10.1",
+    "pre-commit>=4.6.2",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.1",
+]

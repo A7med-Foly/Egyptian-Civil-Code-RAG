@@ -1,0 +1,14 @@
+.git
+.venv
+.pytest_cache
+.coverage
+htmlcov
+__pycache__
+*.pyc
+*.pyo
+tests
+reports
+docs
+data/raw/*.pdf
+models/*.onnx
+.pre-commit-config.yaml
