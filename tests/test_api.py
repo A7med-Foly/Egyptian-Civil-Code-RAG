@@ -1,5 +1,7 @@
 """API integration tests for Arabic Legal Document Q&A endpoints."""
 
+import pytest
+
 
 def test_health_endpoint(client):
     response = client.get("/health")
@@ -77,3 +79,14 @@ def test_generator_mock_behaviors():
     no_cite_res = gen._generate_mock("سؤال عام بدون أي سند قانوني")
     assert "لا يتضمن القانون المدني المصري" in no_cite_res
     assert "تنويه" in no_cite_res
+
+
+@pytest.mark.asyncio
+async def test_generator_async_mock():
+    from legal_rag.rag.generator import LegalGenerator
+
+    gen = LegalGenerator(provider="mock")
+    resp = await gen.generate_response("Egyptian Civil Code, Article 10", "sys")
+    assert "Article 10" in resp
+    tokens = [tok async for tok in gen.generate_stream("Egyptian Civil Code, Article 10", "sys")]
+    assert len(tokens) > 0

@@ -79,22 +79,25 @@ def test_extractor_missing_file_raises():
 
 
 def test_extractor_page_column_extraction():
-    import pdfplumber
+    from unittest.mock import MagicMock
 
     from legal_rag.ingestion.extractor import EgyptianCivilCodeExtractor
 
-    pdf_path = Path("data/raw/Egyptian-Civil-Code.pdf")
-    if not pdf_path.exists():
-        pytest.skip("Raw PDF not found")
-    extractor = EgyptianCivilCodeExtractor(pdf_path)
-    with pdfplumber.open(pdf_path) as pdf:
-        page = pdf.pages[1]
-        ar_lines, en_lines = extractor._extract_page_columns(page)
-        assert len(ar_lines) > 0
-        assert len(en_lines) > 0
-        # Assert Arabic line contains Arabic characters
-        assert any("مادة" in l for _, l in ar_lines)
-        assert any("Article" in l for _, l in en_lines)
+    # Test column extraction without requiring raw PDF on disk
+    page = MagicMock()
+    page.width = 600.0
+    page.height = 800.0
+    crop_mock = MagicMock()
+    crop_mock.extract_words.return_value = [
+        {"text": "مادة", "top": 100.0, "x0": 300.0, "x1": 350.0},
+        {"text": "1", "top": 100.0, "x0": 250.0, "x1": 290.0},
+    ]
+    page.crop.return_value = crop_mock
+
+    extractor = EgyptianCivilCodeExtractor(PROCESSED_JSON)
+    ar_lines, en_lines = extractor._extract_page_columns(page)
+    assert len(ar_lines) > 0
+    assert len(en_lines) > 0
 
 
 def test_corpus_validator_detects_errors():
@@ -169,3 +172,11 @@ def test_validate_file_helper(tmp_path):
     dummy.write_text("[]", encoding="utf-8")
     with pytest.raises(CorpusValidationError):
         validate_file(dummy)
+
+
+def test_validator_main_cli():
+    from legal_rag.ingestion.validator import main
+
+    main()
+    report = Path("data/processed/validation_report.json")
+    assert report.exists()
