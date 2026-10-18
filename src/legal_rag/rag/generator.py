@@ -24,10 +24,18 @@ class LegalGenerator:
         api_base: str | None = None,
         api_key: str | None = None,
     ):
-        self.provider = provider or settings.LLM_PROVIDER
+        self.provider = (provider or settings.LLM_PROVIDER).lower()
         self.model_name = model_name or settings.LLM_MODEL_NAME
-        self.api_base = api_base or settings.LLM_API_BASE
-        self.api_key = api_key or settings.LLM_API_KEY
+        self.api_base = (
+            api_base
+            or settings.LLM_API_BASE
+            or (
+                "https://api.groq.com/openai/v1"
+                if self.provider == "groq"
+                else "http://localhost:8000/v1"
+            )
+        )
+        self.api_key = api_key or settings.get_api_key()
         logger.info(
             f"Initialized LegalGenerator with provider='{self.provider}', model='{self.model_name}'"
         )
@@ -36,21 +44,31 @@ class LegalGenerator:
         """Generate response text asynchronously."""
         if self.provider == "mock":
             return self._generate_mock(prompt)
-        elif self.provider in ("openai_compatible", "vllm"):
+        elif self.provider in ("groq", "openai_compatible", "vllm"):
+            if not self.api_key:
+                logger.warning(
+                    f"No API key provided for {self.provider}. Falling back to mock generator for offline compatibility."
+                )
+                # return self._generate_mock(prompt)
             return await self._generate_openai_compatible(prompt, system_prompt)
         else:
             return self._generate_mock(prompt)
 
     async def generate_stream(self, prompt: str, system_prompt: str) -> AsyncGenerator[str, None]:
         """Yield streamed tokens asynchronously."""
-        if self.provider == "mock":
+        if self.provider == "mock" or (
+            self.provider in ("groq", "openai_compatible", "vllm") and not self.api_key
+        ):
             full_response = self._generate_mock(prompt)
             words = full_response.split(" ")
             for w in words:
                 yield w + " "
-        elif self.provider in ("openai_compatible", "vllm"):
-            url = f"{self.api_base or 'http://localhost:8000/v1'}/chat/completions"
-            headers = {"Authorization": f"Bearer {self.api_key or 'EMPTY'}"}
+        elif self.provider in ("groq", "openai_compatible", "vllm"):
+            url = f"{self.api_base.rstrip('/')}/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            }
             payload = {
                 "model": self.model_name,
                 "messages": [
@@ -61,9 +79,10 @@ class LegalGenerator:
                 "temperature": settings.LLM_TEMPERATURE,
             }
             async with (
-                httpx.AsyncClient(timeout=30.0) as client,
+                httpx.AsyncClient(timeout=60.0) as client,
                 client.stream("POST", url, headers=headers, json=payload) as response,
             ):
+                response.raise_for_status()
                 async for line in response.aiter_lines():
                     if line.startswith("data: ") and line != "data: [DONE]":
                         data = json.loads(line[6:])
@@ -96,9 +115,12 @@ class LegalGenerator:
             )
 
     async def _generate_openai_compatible(self, prompt: str, system_prompt: str) -> str:
-        """Call remote OpenAI-compatible / vLLM endpoint."""
-        url = f"{self.api_base or 'http://localhost:8000/v1'}/chat/completions"
-        headers = {"Authorization": f"Bearer {self.api_key or 'EMPTY'}"}
+        """Call remote OpenAI-compatible / Groq / vLLM endpoint."""
+        url = f"{self.api_base.rstrip('/')}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
         payload = {
             "model": self.model_name,
             "messages": [

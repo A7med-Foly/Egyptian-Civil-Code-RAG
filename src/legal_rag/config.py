@@ -32,12 +32,17 @@ class Settings(BaseSettings):
     RETRIEVAL_TOP_K: int = 3
     SIMILARITY_THRESHOLD: float = 0.35
 
-    # LLM configuration (Dual local/API adapter)
-    LLM_PROVIDER: str = "mock"  # "mock", "local", "openai_compatible"
-    LLM_MODEL_NAME: str = "Qwen/Qwen2.5-1.5B-Instruct"
-    LLM_API_BASE: str | None = None
+    # LLM configuration (Groq, OpenAI-compatible, Mock)
+    LLM_PROVIDER: str = "groq"  # "groq", "openai_compatible", "local", "mock"
+    LLM_MODEL_NAME: str = "openai/gpt-oss-120b"
+    LLM_API_BASE: str = "https://api.groq.com/openai/v1"
     LLM_API_KEY: str | None = None
+    GROQ_API_KEY: str | None = None
     LLM_TEMPERATURE: float = 0.0
+
+    def get_api_key(self) -> str | None:
+        """Retrieve either GROQ_API_KEY or generic LLM_API_KEY."""
+        return self.GROQ_API_KEY or self.LLM_API_KEY
 
     # MLflow configuration
     MLFLOW_TRACKING_URI: str = "http://localhost:5000"
