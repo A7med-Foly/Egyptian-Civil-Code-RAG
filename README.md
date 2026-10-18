@@ -2,7 +2,7 @@
 
 An enterprise-grade, production-oriented Retrieval-Augmented Generation (RAG) system for querying the bilingual Egyptian Civil Code (*القانون المدني المصري*, Law of 1948) with verified statutory article citations.
 
-Developed as the graduation project for the **MLOps Practitioner Bootcamp** (ITI × MLOps MENA Community).
+Developed as the graduation project for the **MLOps Practitioner Bootcamp** (MLOps MENA Community).
 
 ---
 
