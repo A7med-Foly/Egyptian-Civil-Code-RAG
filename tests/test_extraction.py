@@ -95,3 +95,77 @@ def test_extractor_page_column_extraction():
         # Assert Arabic line contains Arabic characters
         assert any("مادة" in l for _, l in ar_lines)
         assert any("Article" in l for _, l in en_lines)
+
+
+def test_corpus_validator_detects_errors():
+    from legal_rag.ingestion.validator import CorpusValidationError
+
+    # 1. Duplicate detection
+    v = CorpusValidator(expected_total=3)
+    with pytest.raises(CorpusValidationError, match="Found duplicate"):
+        v.validate(
+            [
+                {
+                    "article_number": 1,
+                    "text_ar": "نص 1",
+                    "citation": "Egyptian Civil Code, Article 1",
+                },
+                {
+                    "article_number": 1,
+                    "text_ar": "نص 1 مكرر",
+                    "citation": "Egyptian Civil Code, Article 1",
+                },
+                {
+                    "article_number": 2,
+                    "text_ar": "نص 2",
+                    "citation": "Egyptian Civil Code, Article 2",
+                },
+            ]
+        )
+
+    # 2. Missing detection
+    with pytest.raises(CorpusValidationError, match="Missing expected"):
+        v.validate(
+            [
+                {
+                    "article_number": 1,
+                    "text_ar": "نص 1",
+                    "citation": "Egyptian Civil Code, Article 1",
+                },
+                {
+                    "article_number": 3,
+                    "text_ar": "نص 3",
+                    "citation": "Egyptian Civil Code, Article 3",
+                },
+            ]
+        )
+
+    # 3. Empty text and citation mismatch
+    v1 = CorpusValidator(expected_total=1)
+    with pytest.raises(CorpusValidationError, match="empty text_ar"):
+        v1.validate(
+            [{"article_number": 1, "text_ar": "", "citation": "bad citation", "is_repealed": False}]
+        )
+
+    # 4. Giant record detection
+    v_giant = CorpusValidator(expected_total=1, max_char_length=20)
+    with pytest.raises(CorpusValidationError, match="Giant records"):
+        v_giant.validate(
+            [
+                {
+                    "article_number": 1,
+                    "text_ar": "نص طويل يتجاوز الحد المسموح به",
+                    "citation": "Egyptian Civil Code, Article 1",
+                    "is_repealed": False,
+                }
+            ]
+        )
+
+
+def test_validate_file_helper(tmp_path):
+    from legal_rag.ingestion.validator import CorpusValidationError, validate_file
+
+    dummy = tmp_path / "valid.json"
+    dummy.write_text("[]", encoding="utf-8")
+    with pytest.raises(CorpusValidationError):
+        validate_file(dummy)

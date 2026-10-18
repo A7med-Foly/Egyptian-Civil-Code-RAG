@@ -7,7 +7,7 @@ stages:
       - src/legal_rag/ingestion/normalizer.py
     outs:
       - data/processed/egyptian_civil_code.json:
-          cache: true
+          cache: false
 
   validate:
     cmd: uv run python -m legal_rag.ingestion.validator
@@ -16,7 +16,7 @@ stages:
       - src/legal_rag/ingestion/validator.py
     outs:
       - data/processed/validation_report.json:
-          cache: true
+          cache: false
 
   index:
     cmd: uv run python -m legal_rag.indexing.vector_store

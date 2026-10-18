@@ -58,3 +58,22 @@ def test_ask_stream_endpoint(client):
     response = client.post("/ask/stream", json=payload)
     assert response.status_code == 200
     assert len(response.text) > 0
+
+
+def test_generator_mock_behaviors():
+    from legal_rag.rag.generator import LegalGenerator
+
+    gen = LegalGenerator(provider="mock")
+    # 1. Repealed article prompt
+    rep_res = gen._generate_mock("سؤال عن مادة ملغاة Egyptian Civil Code, Article 54")
+    assert "ملغاة" in rep_res
+    assert "Article 54" in rep_res
+
+    # 2. Normal cited prompt
+    cited_res = gen._generate_mock("سؤال عن العقد Egyptian Civil Code, Article 147")
+    assert "Article 147" in cited_res
+
+    # 3. No citations prompt
+    no_cite_res = gen._generate_mock("سؤال عام بدون أي سند قانوني")
+    assert "لا يتضمن القانون المدني المصري" in no_cite_res
+    assert "تنويه" in no_cite_res

@@ -53,11 +53,11 @@ stages:
       size: 1453
     - path: src/legal_rag/indexing/vector_store.py
       hash: md5
-      md5: 66d1b0238b06e80593edcec287eb2bbe
-      size: 8247
+      md5: fb77efee382f2ad610da800b59127de6
+      size: 8470
     outs:
     - path: data/index/chroma_db
       hash: md5
-      md5: f13667fe9a5ec888eb4b2735e8a92776.dir
-      size: 9792218
+      md5: 6c0f6b66071d03f802f932862656677a.dir
+      size: 9816658
       nfiles: 6
