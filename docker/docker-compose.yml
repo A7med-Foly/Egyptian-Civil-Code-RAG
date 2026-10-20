@@ -10,12 +10,25 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mlflow -d mlflow"]
       interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: legal-rag-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   minio:
     image: quay.io/minio/minio:latest
@@ -46,7 +59,9 @@ services:
       "
 
   mlflow:
-    image: ghcr.io/mlflow/mlflow:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
     container_name: legal-rag-mlflow
     ports:
       - "5000:5000"
@@ -60,6 +75,7 @@ services:
       --default-artifact-root s3://mlflow-artifacts/
       --host 0.0.0.0
       --port 5000
+      --allowed-hosts "*"
     depends_on:
       postgres:
         condition: service_healthy
@@ -67,27 +83,121 @@ services:
         condition: service_started
     restart: unless-stopped
 
-  legal-rag-api:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    container_name: legal-rag-api
-    ports:
-      - "8000:8000"
+  airflow-init:
+    image: apache/airflow:2.9.2
+    container_name: legal-rag-airflow-init
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      - LOG_LEVEL=INFO
-      - API_PORT=8000
-      - LLM_PROVIDER=groq
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://mlflow:mlflowpassword@postgres:5432/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+    command: >
+      bash -c "
+      airflow db migrate &&
+      airflow users create --username admin --password admin --firstname Admin --lastname Admin --role Admin --email admin@example.com || true
+      "
+
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: legal-rag-airflow-webserver
+    command: webserver
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://mlflow:mlflowpassword@postgres:5432/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__WEBSERVER__BASE_URL=http://localhost:8085
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
       - AWS_ACCESS_KEY_ID=minioadmin
       - AWS_SECRET_ACCESS_KEY=minioadmin
+    ports:
+      - "8085:8080"
+    volumes:
+      - ../pipelines/dags:/opt/airflow/dags
+      - ../data:/opt/airflow/data
+      - ../src:/opt/airflow/src
+    restart: unless-stopped
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: legal-rag-airflow-scheduler
+    command: scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://mlflow:mlflowpassword@postgres:5432/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    volumes:
+      - ../pipelines/dags:/opt/airflow/dags
+      - ../data:/opt/airflow/data
+      - ../src:/opt/airflow/src
+    restart: unless-stopped
+
+  legal-rag-v1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: legal-rag-v1
+    environment:
+      - LOG_LEVEL=INFO
+      - API_PORT=8000
+      - API_VERSION=v0.2.0
+      - LLM_PROVIDER=groq
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 30s
+      interval: 15s
       timeout: 5s
       retries: 3
+
+  legal-rag-v2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: legal-rag-v2
+    environment:
+      - LOG_LEVEL=INFO
+      - API_PORT=8000
+      - API_VERSION=v0.3.0-rc1
+      - LLM_PROVIDER=groq
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    container_name: legal-rag-nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - legal-rag-v1
+      - legal-rag-v2
+    restart: unless-stopped
 
 volumes:
   postgres_data:

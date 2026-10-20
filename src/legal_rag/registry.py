@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 import mlflow
 from mlflow.tracking import MlflowClient
 
-from legal_rag.config import settings
+try:
+    from legal_rag.config import settings
+
+    DEFAULT_TRACKING_URI = settings.MLFLOW_TRACKING_URI
+except Exception:  # noqa: BLE001
+    DEFAULT_TRACKING_URI = "http://localhost:5000"
 
 logger = logging.getLogger("legal_rag.registry")
 
@@ -22,7 +28,7 @@ class LegalModelRegistry:
         tracking_uri: str | None = None,
     ):
         self.model_name = model_name
-        self.tracking_uri = tracking_uri or settings.MLFLOW_TRACKING_URI
+        self.tracking_uri = tracking_uri or os.getenv("MLFLOW_TRACKING_URI") or DEFAULT_TRACKING_URI
         mlflow.set_tracking_uri(self.tracking_uri)
         self.client = MlflowClient(tracking_uri=self.tracking_uri)
 
@@ -135,3 +141,16 @@ class LegalModelRegistry:
             version = self.register_model_from_run(candidate_run_id)
             self.transition_stage(version, "Staging")
             return False
+
+
+def register_and_promote_model(
+    run_id: str,
+    model_name: str = "EgyptianLegalRAG",
+    target_stage: str = "Production",
+    tracking_uri: str | None = None,
+) -> str:
+    """Convenience helper to register a run and transition to target stage."""
+    registry = LegalModelRegistry(model_name=model_name, tracking_uri=tracking_uri)
+    version = registry.register_model_from_run(run_id=run_id)
+    registry.transition_stage(version=version, stage=target_stage)
+    return version

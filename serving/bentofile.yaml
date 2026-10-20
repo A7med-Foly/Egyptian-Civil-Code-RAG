@@ -1,0 +1,24 @@
+service: "serving.service:LegalRAGService"
+labels:
+  owner: ahmed-foly
+  project: egyptian-civil-code-rag
+  track: llm-rag-b
+  version: v0.3.0
+
+include:
+  - "serving/"
+  - "src/"
+  - "data/processed/"
+  - "models/"
+
+python:
+  packages:
+    - bentoml>=1.4.0
+    - fastapi>=0.146.0
+    - pydantic>=2.14.0
+    - sentence-transformers>=6.1.0
+    - onnxruntime>=1.24.0
+    - rank-bm25>=0.2.2
+    - chromadb>=1.5.9
+    - python-json-logger>=4.2.0
+    - httpx>=0.28.0
