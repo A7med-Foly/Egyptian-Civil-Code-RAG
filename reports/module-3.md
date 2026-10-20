@@ -158,7 +158,7 @@ Configured in `docker/nginx.conf`:
 
 ## 9. Apache Airflow Pipeline Orchestration
 
-Automated end-to-end retraining and model registration in `pipelines/dags/legal_rag_pipeline.py`:
+Automated end-to-end retraining, quality gating, and model registration in `pipelines/dags/legal_rag_pipeline.py`:
 
 ```mermaid
 flowchart LR
@@ -173,6 +173,37 @@ flowchart LR
     Sk --> N
 ```
 
+### Acceptance Check: End-to-End Green Execution
+
+The continuous retraining DAG `legal_rag_continuous_training` executed completely green end-to-end against live PostgreSQL, MinIO, and MLflow backends:
+
+| Task ID | State | Operator | Execution Note |
+| :--- | :---: | :--- | :--- |
+| `sensor_raw_data` | **success** | `PythonSensor` | Verified processed legal corpus (`egyptian_civil_code.json`). |
+| `extract_corpus` | **success** | `PythonOperator` | Verified legal corpus extraction integrity. |
+| `validate_corpus` | **success** | `PythonOperator` | Validated all **1,149 articles** schema and active/repealed ranges. |
+| `index_corpus` | **success** | `PythonOperator` | Verified dense vector store index (1,149 articles indexed). |
+| `evaluate_model` | **success** | `PythonOperator` | Logged metrics to MLflow: `faithfulness=0.8925`, `recall@3=0.3050`. |
+| `branch_promotion` | **success** | `BranchPythonOperator` | Quality gate passed: Faithfulness $0.8925 \ge 0.75 \implies$ routed to `register_model`. |
+| `register_model` | **success** | `PythonOperator` | Registered new model version in `EgyptianLegalRAG` and transitioned to `Production`. |
+| `skip_registration`| **skipped** | `EmptyOperator` | Correctly skipped on gate pass. |
+| `notify` | **success** | `PythonOperator` | Completed pipeline notification (`none_failed_min_one_success`). |
+
+### MLflow Model Registry State
+
+Following the DAG completion, the new model was registered and promoted:
+- **Registered Model:** `EgyptianLegalRAG`
+- **Active Production Version:** `v3` (Run ID: `254521e864e04668ae12c55ed49dbeac`)
+- **Archived Versions:** `v1`, `v2` (automatically transitioned to `Archived` stage)
+
+### Airflow & MLflow Dashboard Screenshots
+
+![Airflow DAG Graph View - Green Execution](assets/airflow_dag_graph_green.png)
+*Figure 9.1: Apache Airflow Graph View displaying all green task instances across the continuous retraining pipeline.*
+
+![MLflow Model Registry](assets/mlflow_model_registry.png)
+*Figure 9.2: MLflow Model Registry displaying EgyptianLegalRAG with newly registered model version promoted to Production.*
+
 ### Division of Labor: Airflow vs GitHub Actions CI
 
 - **GitHub Actions (CI/CD):** Ephemeral code-centric quality gate. Runs linter, unit test suites, code coverage gates, and Docker builds on every pull request. Fails fast on bad commits.
@@ -183,6 +214,7 @@ flowchart LR
 
 ## 10. Verification & Test Suite Results
 
-- **Unit & Serving Tests:** 52 passing tests, 0 failures.
-- **Test Coverage:** **76.59%** across `src/legal_rag` (exceeding the 70% CI gate).
+- **Unit & Serving Tests:** **54 passing tests**, 0 failures.
+- **Test Coverage:** **79.35%** across `src/legal_rag` (exceeding the 70% CI gate requirement).
 - **Automated Guard Test:** Verified rollback execution under simulated SLA degradation.
+- **Continuous Retraining DAG:** 100% green execution producing verified MLflow Production model.
