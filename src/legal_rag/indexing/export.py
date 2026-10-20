@@ -59,7 +59,9 @@ def export_embedding_to_onnx(
         opset_version=14,
         do_constant_folding=True,
     )
-    logger.info(f"ONNX export succeeded. File size: {out_file.stat().st_size / (1024*1024):.2f} MB")
+    logger.info(
+        f"ONNX export succeeded. File size: {out_file.stat().st_size / (1024 * 1024):.2f} MB"
+    )
     return out_file
 
 

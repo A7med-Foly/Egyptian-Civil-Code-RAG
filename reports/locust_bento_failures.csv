@@ -1,0 +1,4 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,/ask_batch,CatchResponseError('Batch request failed with HTTP 503'),55,2026-10-20T19:08:16Z,2026-10-20T19:08:43Z
+GET,/health,CatchResponseError('Diagnostic probe /health returned 405'),10,2026-10-20T19:08:17Z,2026-10-20T19:08:43Z
+GET,/metadata,CatchResponseError('Diagnostic probe /metadata returned 404'),14,2026-10-20T19:08:15Z,2026-10-20T19:08:43Z

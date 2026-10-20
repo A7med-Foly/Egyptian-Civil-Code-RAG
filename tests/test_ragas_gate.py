@@ -267,9 +267,9 @@ def run_ragas_quality_gate(threshold: float = 0.75) -> dict[str, Any]:
 def test_ragas_quality_gate():
     """Pytest test asserting that mean faithfulness meets or exceeds the CI gate threshold."""
     report = run_ragas_quality_gate(threshold=0.75)
-    assert report[
-        "gate_passed"
-    ], f"RAGAS quality gate failed: mean faithfulness {report['mean_faithfulness']:.4f} < 0.75"
+    assert report["gate_passed"], (
+        f"RAGAS quality gate failed: mean faithfulness {report['mean_faithfulness']:.4f} < 0.75"
+    )
 
 
 if __name__ == "__main__":

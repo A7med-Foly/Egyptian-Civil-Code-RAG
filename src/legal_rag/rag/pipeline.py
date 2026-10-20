@@ -90,8 +90,8 @@ class LegalRAGPipeline:
 
         total_latency = time.time() - start_time
         logger.info(
-            f"Query answered in {total_latency*1000:.1f}ms "
-            f"(retrieval={retrieval_latency*1000:.1f}ms, generation={generation_latency*1000:.1f}ms) "
+            f"Query answered in {total_latency * 1000:.1f}ms "
+            f"(retrieval={retrieval_latency * 1000:.1f}ms, generation={generation_latency * 1000:.1f}ms) "
             f"with {len(sources)} citations."
         )
 

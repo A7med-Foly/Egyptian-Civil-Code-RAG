@@ -31,6 +31,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             duration_ms = (time.time() - start_time) * 1000
             response.headers[settings.CORRELATION_HEADER] = corr_id
+            response.headers["X-Model-Version"] = settings.API_VERSION
             logger.info(
                 f"Completed request: {request.method} {request.url.path} - status={response.status_code} in {duration_ms:.2f}ms",
                 extra={"status_code": response.status_code, "duration_ms": duration_ms},

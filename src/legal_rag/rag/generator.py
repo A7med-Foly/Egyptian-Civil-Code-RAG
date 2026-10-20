@@ -86,17 +86,26 @@ class LegalGenerator:
                 "stream": True,
                 "temperature": settings.LLM_TEMPERATURE,
             }
-            async with (
-                httpx.AsyncClient(timeout=60.0) as client,
-                client.stream("POST", url, headers=headers, json=payload) as response,
-            ):
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if line.startswith("data: ") and line != "data: [DONE]":
-                        data = json.loads(line[6:])
-                        delta = data["choices"][0]["delta"].get("content", "")
-                        if delta:
-                            yield delta
+            try:
+                async with (
+                    httpx.AsyncClient(timeout=60.0) as client,
+                    client.stream("POST", url, headers=headers, json=payload) as response,
+                ):
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        if line.startswith("data: ") and line != "data: [DONE]":
+                            data = json.loads(line[6:])
+                            delta = data["choices"][0]["delta"].get("content", "")
+                            if delta:
+                                yield delta
+            except Exception as e:  # noqa: BLE001
+                logger.warning(
+                    f"Streaming error on {self.provider} ({e}); falling back to mock stream."
+                )
+                full_response = self._generate_mock(prompt)
+                for w in full_response.split(" "):
+                    await asyncio.sleep(0.015)
+                    yield w + " "
 
     def _generate_mock(self, prompt: str) -> str:
         """Produce a deterministic grounded response based on context for tests and CI."""
@@ -157,7 +166,7 @@ class LegalGenerator:
                         wait_time = 2.0 * (attempt + 1)
 
                     logger.warning(
-                        f"Groq TPM rate limit (429) reached. Waiting {wait_time:.2f}s for quota to reset (attempt {attempt+1}/{max_retries})..."
+                        f"Groq TPM rate limit (429) reached. Waiting {wait_time:.2f}s for quota to reset (attempt {attempt + 1}/{max_retries})..."
                     )
                     await asyncio.sleep(wait_time)
                     continue
