@@ -21,9 +21,9 @@ def test_corpus_count_and_continuity(corpus):
     assert len(corpus) == 1149
     article_numbers = [a["article_number"] for a in corpus]
     expected_numbers = list(range(1, 1150))
-    assert article_numbers == expected_numbers, (
-        "Article numbers must be strictly contiguous from 1 to 1149"
-    )
+    assert (
+        article_numbers == expected_numbers
+    ), "Article numbers must be strictly contiguous from 1 to 1149"
 
 
 def test_corpus_validator_passes(corpus):
