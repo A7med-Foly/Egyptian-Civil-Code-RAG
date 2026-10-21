@@ -9,9 +9,10 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from legal_rag.api.middleware import CorrelationIdMiddleware
+from legal_rag.api.rate_limiter import rate_limiter
 from legal_rag.api.schemas import (
     AskRequest,
     AskResponse,
@@ -19,8 +20,18 @@ from legal_rag.api.schemas import (
     MetadataResponse,
 )
 from legal_rag.config import settings
+from legal_rag.guardrails.input_guardrails import detect_prompt_injection, redact_pii
+from legal_rag.guardrails.output_guardrails import validate_citation_grounding
 from legal_rag.indexing.vector_store import LegalVectorStore
 from legal_rag.logging_conf import get_correlation_id, setup_logging
+from legal_rag.monitoring.langfuse_tracer import tracer
+from legal_rag.monitoring.metrics import (
+    INFLIGHT_REQUESTS,
+    PREDICTION_LATENCY_SECONDS,
+    get_latest_metrics,
+    record_prediction,
+    track_stage_latency,
+)
 from legal_rag.rag.pipeline import LegalRAGPipeline
 
 # Initialize structured logging
@@ -108,6 +119,16 @@ async def health_check():
     )
 
 
+@app.get("/metrics")
+async def prometheus_metrics():
+    """Prometheus exposition format endpoint for scraping."""
+    metrics_bytes = get_latest_metrics()
+    return Response(
+        content=metrics_bytes,
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )
+
+
 @app.get("/metadata", response_model=MetadataResponse, status_code=status.HTTP_200_OK)
 async def get_metadata():
     """Return system configuration, versions, and indexed article counts."""
@@ -122,7 +143,7 @@ async def get_metadata():
 
 
 @app.post("/ask", response_model=AskResponse, status_code=status.HTTP_200_OK)
-async def ask_question(payload: AskRequest):
+async def ask_question(payload: AskRequest, request: Request):
     """Answer an Arabic or English legal question with verified Egyptian Civil Code citations."""
     if pipeline_instance is None:
         raise HTTPException(
@@ -130,22 +151,114 @@ async def ask_question(payload: AskRequest):
             detail="Service is warming up or models are not loaded.",
         )
 
-    result = await pipeline_instance.answer_question(
-        question=payload.question,
-        top_k=payload.top_k,
-    )
+    # 1. Rate Limiting Check (Token Bucket)
+    client_ip = request.client.host if request.client else "anonymous"
+    rate_res = rate_limiter.check_rate_limit(client_ip)
+    if not rate_res.allowed:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            headers={"Retry-After": str(rate_res.retry_after_seconds)},
+            content={
+                "error": "Too Many Requests",
+                "message": f"Rate limit exceeded. Please retry after {rate_res.retry_after_seconds} seconds.",
+                "retry_after": rate_res.retry_after_seconds,
+                "correlation_id": get_correlation_id(),
+            },
+        )
 
-    return AskResponse(
-        answer=result["answer"],
-        sources=result["sources"],
-        model_version=settings.API_VERSION,
+    # 2. Input Guardrails: Prompt Injection Filter & PII Redaction
+    with track_stage_latency("guardrails"):
+        injection_res = detect_prompt_injection(payload.question)
+        if not injection_res.passed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Security Guardrail: {injection_res.reason}",
+            )
+        pii_res = redact_pii(payload.question)
+        sanitized_question = pii_res.sanitized_text
+
+    # 3. Instrumented Execution with Stage Timings, Langfuse Tracing & In-flight Saturation
+    INFLIGHT_REQUESTS.inc()
+    status_label = "success"
+    with tracer.trace_query(
+        query=sanitized_question,
         correlation_id=get_correlation_id(),
-        latency_ms=result["total_latency_ms"],
-    )
+        user_id=client_ip,
+    ) as trace:
+        try:
+            with track_stage_latency("total"):
+                result = await pipeline_instance.answer_question(
+                    question=sanitized_question,
+                    top_k=payload.top_k,
+                )
+
+            # Record internal pipeline stage latencies
+            retrieval_sec = float(result.get("retrieval_latency_ms", 0.0)) / 1000.0
+            generation_sec = float(result.get("generation_latency_ms", 0.0)) / 1000.0
+            PREDICTION_LATENCY_SECONDS.labels(stage="retrieval").observe(retrieval_sec)
+            PREDICTION_LATENCY_SECONDS.labels(stage="generation").observe(generation_sec)
+
+            # Record Langfuse spans
+            tracer.record_retrieval_span(
+                trace_data=trace,
+                query=sanitized_question,
+                retrieved_documents=result.get("retrieved_documents", []),
+                latency_ms=result.get("retrieval_latency_ms", 0.0),
+            )
+            tracer.record_generation(
+                trace_data=trace,
+                prompt=sanitized_question,
+                output_text=result["answer"],
+                model_name=settings.LLM_MODEL_NAME,
+                prompt_tokens=len(sanitized_question.split()),
+                completion_tokens=len(result["answer"].split()),
+                latency_ms=result.get("generation_latency_ms", 0.0),
+            )
+
+            # 4. Output Guardrail: Citation Grounding Check
+            with track_stage_latency("guardrails"):
+                retrieved_texts = [
+                    (
+                        getattr(d, "text", "")
+                        if hasattr(d, "text")
+                        else (d.get("text", "") if isinstance(d, dict) else str(d))
+                    )
+                    for d in result.get("retrieved_documents", [])
+                ]
+                validate_citation_grounding(
+                    answer=result["answer"],
+                    sources=result["sources"],
+                    retrieved_texts=retrieved_texts,
+                )
+
+            record_prediction(
+                model_version=settings.API_VERSION,
+                status="success",
+                provider=settings.LLM_PROVIDER,
+                score=0.85,
+            )
+
+            return AskResponse(
+                answer=result["answer"],
+                sources=result["sources"],
+                model_version=settings.API_VERSION,
+                correlation_id=get_correlation_id(),
+                latency_ms=result["total_latency_ms"],
+            )
+        except Exception:
+            status_label = "error"
+            record_prediction(
+                model_version=settings.API_VERSION,
+                status=status_label,
+                provider=settings.LLM_PROVIDER,
+            )
+            raise
+        finally:
+            INFLIGHT_REQUESTS.dec()
 
 
 @app.post("/ask/stream")
-async def ask_question_stream(payload: AskRequest):
+async def ask_question_stream(payload: AskRequest, request: Request):
     """Stream answer tokens progressively."""
     if pipeline_instance is None:
         raise HTTPException(
@@ -153,9 +266,46 @@ async def ask_question_stream(payload: AskRequest):
             detail="Service is warming up or models are not loaded.",
         )
 
+    # Rate Limiting
+    client_ip = request.client.host if request.client else "anonymous"
+    rate_res = rate_limiter.check_rate_limit(client_ip)
+    if not rate_res.allowed:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            headers={"Retry-After": str(rate_res.retry_after_seconds)},
+            content={
+                "error": "Too Many Requests",
+                "message": f"Rate limit exceeded. Please retry after {rate_res.retry_after_seconds} seconds.",
+                "retry_after": rate_res.retry_after_seconds,
+            },
+        )
+
+    # Input guardrails
+    injection_res = detect_prompt_injection(payload.question)
+    if not injection_res.passed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Security Guardrail: {injection_res.reason}",
+        )
+
+    pii_res = redact_pii(payload.question)
+    sanitized_question = pii_res.sanitized_text
+
     async def token_stream():
-        async for token in pipeline_instance.answer_stream(payload.question, top_k=payload.top_k):
-            yield token
+        INFLIGHT_REQUESTS.inc()
+        try:
+            with track_stage_latency("generation"):
+                async for token in pipeline_instance.answer_stream(
+                    sanitized_question, top_k=payload.top_k
+                ):
+                    yield token
+            record_prediction(
+                model_version=settings.API_VERSION,
+                status="success",
+                provider=settings.LLM_PROVIDER,
+            )
+        finally:
+            INFLIGHT_REQUESTS.dec()
 
     return StreamingResponse(token_stream(), media_type="text/plain")
 

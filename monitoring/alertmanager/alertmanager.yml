@@ -1,0 +1,42 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ["alertname", "job", "model_version"]
+  group_wait: 10s
+  group_interval: 30s
+  repeat_interval: 1h
+  receiver: "default-receiver"
+  routes:
+    - match:
+        severity: critical
+      receiver: "critical-symptom-receiver"
+      continue: true
+    - match:
+        severity: warning
+      receiver: "warning-cause-receiver"
+
+inhibit_rules:
+  # Inhibit all warning alerts if the service is completely down
+  - source_match:
+      alertname: "LegalRAGServiceDown"
+      severity: "critical"
+    target_match_re:
+      severity: "warning|critical"
+    equal: ["job"]
+
+receivers:
+  - name: "default-receiver"
+    webhook_configs:
+      - url: "http://localhost:5001/alerts"
+        send_resolved: true
+
+  - name: "critical-symptom-receiver"
+    webhook_configs:
+      - url: "http://localhost:5001/alerts/critical"
+        send_resolved: true
+
+  - name: "warning-cause-receiver"
+    webhook_configs:
+      - url: "http://localhost:5001/alerts/warning"
+        send_resolved: true

@@ -1,0 +1,220 @@
+{
+  "control_evaluation": {
+    "KS_Test": {
+      "method": "KS-Test",
+      "drift_detected": false,
+      "score": 0.035,
+      "threshold": 0.05,
+      "p_value": 0.9674055629008819,
+      "details": {
+        "statistic": 0.035,
+        "sample_size_ref": 400,
+        "sample_size_curr": 400
+      }
+    },
+    "Chi_Square": {
+      "method": "Chi-Square",
+      "drift_detected": false,
+      "score": 0.07661000769153488,
+      "threshold": 0.05,
+      "p_value": 0.9944882749219135,
+      "details": {
+        "categories": [
+          "Contracts",
+          "Property",
+          "Securities",
+          "Torts"
+        ],
+        "observed": [
+          218.0,
+          132.0,
+          61.0,
+          89.0
+        ],
+        "expected": [
+          219.99620015199392,
+          129.99980000799968,
+          60.002599896004156,
+          90.00139994400223
+        ]
+      }
+    },
+    "Wasserstein": {
+      "method": "Wasserstein",
+      "drift_detected": false,
+      "score": 0.051803504142320385,
+      "threshold": 0.15,
+      "p_value": null,
+      "details": {
+        "raw_distance": 0.6028419758973202,
+        "normalized_distance": 0.051803504142320385
+      }
+    },
+    "JS_Divergence": {
+      "method": "JS-Divergence",
+      "drift_detected": false,
+      "score": 2.7592230683012734e-05,
+      "threshold": 0.05,
+      "p_value": null,
+      "details": {
+        "is_symmetric": true,
+        "bounded_range": "[0, 1]"
+      }
+    },
+    "Domain_Classifier": {
+      "method": "MMD-Domain-Classifier",
+      "drift_detected": false,
+      "score": 0.46875,
+      "threshold": 0.65,
+      "p_value": null,
+      "details": {
+        "auc": 0.46875,
+        "mmd": 0.04519564121934853,
+        "top_drift_dimensions": [
+          139,
+          257,
+          84,
+          311,
+          86
+        ],
+        "interpretation": "Control distribution matches reference (AUC ≈ 0.5)"
+      }
+    }
+  },
+  "drift_evaluation": {
+    "KS_Test": {
+      "method": "KS-Test",
+      "drift_detected": true,
+      "score": 0.61,
+      "threshold": 0.05,
+      "p_value": 1.0000798047202729e-69,
+      "details": {
+        "statistic": 0.61,
+        "sample_size_ref": 400,
+        "sample_size_curr": 400
+      }
+    },
+    "Chi_Square": {
+      "method": "Chi-Square",
+      "drift_detected": true,
+      "score": 281.59224917845313,
+      "threshold": 0.05,
+      "p_value": 9.57865598997633e-61,
+      "details": {
+        "categories": [
+          "Contracts",
+          "Property",
+          "Securities",
+          "Torts"
+        ],
+        "observed": [
+          80.0,
+          110.0,
+          150.0,
+          160.0
+        ],
+        "expected": [
+          219.99620015199392,
+          129.99980000799968,
+          60.002599896004156,
+          90.00139994400223
+        ]
+      }
+    },
+    "Wasserstein": {
+      "method": "Wasserstein",
+      "drift_detected": true,
+      "score": 1.2754815406780609,
+      "threshold": 0.15,
+      "p_value": null,
+      "details": {
+        "raw_distance": 22.27581064552867,
+        "normalized_distance": 1.2754815406780609
+      }
+    },
+    "JS_Divergence": {
+      "method": "JS-Divergence",
+      "drift_detected": true,
+      "score": 0.09328530193863017,
+      "threshold": 0.05,
+      "p_value": null,
+      "details": {
+        "is_symmetric": true,
+        "bounded_range": "[0, 1]"
+      }
+    },
+    "Domain_Classifier": {
+      "method": "MMD-Domain-Classifier",
+      "drift_detected": true,
+      "score": 1.0,
+      "threshold": 0.65,
+      "p_value": null,
+      "details": {
+        "auc": 1.0,
+        "mmd": 0.36697853036150907,
+        "top_drift_dimensions": [
+          0,
+          25,
+          17,
+          20,
+          11
+        ],
+        "interpretation": "Drift detected"
+      }
+    },
+    "DDM_Streaming": {
+      "drift_detected": true,
+      "detected_at_sample": 329,
+      "delay_after_shift": 29
+    },
+    "ADWIN_Streaming": {
+      "drift_detected": false,
+      "detected_at_sample": null,
+      "delay_after_shift": null
+    }
+  },
+  "detection_summary": [
+    {
+      "method": "KS Test",
+      "target": "Data Drift (Length)",
+      "control_fp": false,
+      "drift_detected": true,
+      "metric_value": "0.6100 (p=1.00e-69)"
+    },
+    {
+      "method": "Chi-Square",
+      "target": "Label/Topic Drift",
+      "control_fp": false,
+      "drift_detected": true,
+      "metric_value": "Chi2=281.6 (p=9.58e-61)"
+    },
+    {
+      "method": "Wasserstein",
+      "target": "Magnitude Drift",
+      "control_fp": false,
+      "drift_detected": true,
+      "metric_value": "NormDist=1.2755"
+    },
+    {
+      "method": "JS Divergence",
+      "target": "Topic Probabilities",
+      "control_fp": false,
+      "drift_detected": true,
+      "metric_value": "JS=0.0933"
+    },
+    {
+      "method": "Domain Classifier",
+      "target": "Embedding Drift",
+      "control_fp": false,
+      "drift_detected": true,
+      "metric_value": "AUC=1.000 (Control=0.469)"
+    },
+    {
+      "method": "DDM / ADWIN",
+      "target": "Streaming Concept Drift",
+      "control_fp": false,
+      "drift_detected": true,
+      "metric_value": "DDM delay=29 samples"
+    }
+  ]
+}

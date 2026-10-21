@@ -1,0 +1,91 @@
+groups:
+  - name: legal_rag_alerts
+    rules:
+      # 1. Service Down (Symptom - Critical)
+      - alert: LegalRAGServiceDown
+        expr: probe_success{job="blackbox_http"} == 0 or up{job="legal_rag_api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          type: symptom
+        annotations:
+          summary: "Legal RAG service is unreachable"
+          description: "Blackbox probe or scrape failed for > 1 minute. API container may be crashed or deadlocked."
+          action: "Check container logs via 'docker logs legal-rag-v1' and restart if hung."
+
+      # 2. p95 Latency SLA Breach (Symptom - Critical)
+      - alert: LegalRAGHighP95Latency
+        expr: histogram_quantile(0.95, sum(rate(legal_rag_prediction_latency_seconds_bucket{stage="total"}[5m])) by (le)) > 2.0
+        for: 5m
+        labels:
+          severity: critical
+          type: symptom
+        annotations:
+          summary: "p95 Latency SLA breached (> 2.0s for 5m)"
+          description: "Current p95 latency is {{ $value }}s, exceeding the 2000ms user interaction SLA."
+          action: "Inspect per-stage latency breakdown in Grafana; trigger canary rollback via 'bash serving/rollback.sh'."
+
+      # 3. High Error Rate (Symptom - Critical)
+      - alert: LegalRAGHighErrorRate
+        expr: >
+          sum(rate(legal_rag_predictions_total{status="error"}[5m]))
+          / sum(rate(legal_rag_predictions_total[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          type: symptom
+        annotations:
+          summary: "API error rate exceeds 1% over 5m"
+          description: "Error rate is {{ $value | humanizePercentage }}. Upstream LLM or vector database may be failing."
+          action: "Check Groq API quota or ChromaDB connection errors in application logs."
+
+      # 4. Feature / Embedding Drift Detected (Cause - Warning)
+      - alert: LegalRAGDriftDetected
+        expr: legal_rag_prediction_score_count > 100 and (histogram_quantile(0.5, sum(rate(legal_rag_prediction_score_bucket[15m])) by (le)) < 0.40)
+        for: 10m
+        labels:
+          severity: warning
+          type: cause
+        annotations:
+          summary: "Statutory retrieval drift detected (median score < 0.40)"
+          description: "Median retrieval score dropped to {{ $value }}, indicating semantic drift or unindexed legal queries."
+          action: "Trigger continuous retraining pipeline: 'docker exec legal-rag-airflow-webserver airflow dags trigger legal_rag_continuous_training'."
+
+      # 5. Container Memory Resource Exhaustion (Cause - Warning)
+      - alert: LegalRAGContainerMemoryHigh
+        expr: container_memory_usage_bytes{name=~"legal-rag.*"} / container_spec_memory_limit_bytes{name=~"legal-rag.*"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          type: cause
+        annotations:
+          summary: "Container memory usage > 85% of limit"
+          description: "Container {{ $labels.name }} is using {{ $value | humanizePercentage }} of memory allocation."
+          action: "Inspect memory leaks or vector cache sizes in container."
+
+      # 6. Prediction Volume Drop (Cause - Warning)
+      - alert: LegalRAGPredictionVolumeDrop
+        expr: sum(rate(legal_rag_predictions_total[5m])) < 0.1 and sum(rate(legal_rag_predictions_total[1h] offset 1d)) > 1.0
+        for: 15m
+        labels:
+          severity: warning
+          type: cause
+        annotations:
+          summary: "Query volume dropped > 50% compared to yesterday"
+          description: "Inference volume is abnormally low compared to historical baseline. Ingress or gateway may be broken."
+          action: "Verify Nginx ingress proxy on port 8000 and network firewall."
+
+      # 7. Multi-window SLO Burn-Rate Alert (14.4x 1-hour / 6-hour burn rate for 99% SLA)
+      - alert: LegalRAGSLOBurnRateHigh
+        expr: >
+          (sum(rate(legal_rag_predictions_total{status="error"}[1h])) / sum(rate(legal_rag_predictions_total[1h])) > (14.4 * 0.01))
+          and
+          (sum(rate(legal_rag_predictions_total{status="error"}[5m])) / sum(rate(legal_rag_predictions_total[5m])) > (14.4 * 0.01))
+        for: 2m
+        labels:
+          severity: critical
+          type: slo_burn_rate
+        annotations:
+          summary: "Rapid Error Budget Burn Rate (14.4x burn rate)"
+          description: "Service is burning 2% of the 30-day error budget per hour. Immediate mitigation required."
+          action: "Page on-call engineer immediately and initiate emergency canary rollback."

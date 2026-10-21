@@ -1,0 +1,26 @@
+groups:
+  - name: legal_rag_recording_rules
+    interval: 15s
+    rules:
+      # 1. Precomputed p95 Latency by Pipeline Stage (Histogram Quantile)
+      - record: job:legal_rag_prediction_latency:p95_5m
+        expr: >
+          histogram_quantile(0.95,
+            sum(rate(legal_rag_prediction_latency_seconds_bucket[5m])) by (le, stage)
+          )
+
+      # 2. Precomputed Error Rate Ratio (Symptom Monitoring)
+      - record: job:legal_rag_error_rate:ratio_5m
+        expr: >
+          (sum(rate(legal_rag_predictions_total{status="error"}[5m])) or vector(0))
+          / (sum(rate(legal_rag_predictions_total[5m])) > 0 or vector(1))
+
+      # 3. Overall Inference Throughput (RPS)
+      - record: job:legal_rag_throughput:rps_1m
+        expr: sum(rate(legal_rag_predictions_total[1m]))
+
+      # 4. Retrieval Latency as Share of Total End-to-End Latency
+      - record: job:legal_rag_retrieval_share:ratio_5m
+        expr: >
+          sum(rate(legal_rag_prediction_latency_seconds_sum{stage="retrieval"}[5m]))
+          / (sum(rate(legal_rag_prediction_latency_seconds_sum{stage="total"}[5m])) > 0 or vector(1))
